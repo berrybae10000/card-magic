@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>角色應援卡</title>
+
+<style>
+*{
+  box-sizing:border-box;
+  -webkit-tap-highlight-color:transparent;
+}
+
+body{
+  margin:0;
+  min-height:100svh;
+  background:linear-gradient(180deg,#fff8ef,#ffe2c4);
+  font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC",sans-serif;
+  color:#111;
+  overflow:hidden;
+}
+
+.app{
+  min-height:100svh;
+  padding:28px 18px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  text-align:center;
+}
+
+.round{
+  font-size:14px;
+  font-weight:800;
+  letter-spacing:3px;
+  opacity:.5;
+}
+
+h1{
+  font-size:29px;
+  margin:8px 0;
+}
+
+.hint{
+  margin:0;
+  min-height:25px;
+}
+
+.table{
+  flex:1;
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:20px;
+}
+
+.card{
+  width:min(39vw,220px);
+  height:min(57vw,315px);
+  min-width:140px;
+  min-height:210px;
+  perspective:1000px;
+  cursor:pointer;
+  touch-action:manipulation;
+}
+
+.inner{
+  width:100%;
+  height:100%;
+  position:relative;
+  transform-style:preserve-3d;
+  transition:transform .65s;
+}
+
+.card.flipped .inner{
+  transform:rotateY(180deg);
+}
+
+.face{
+  position:absolute;
+  inset:0;
+  border:4px solid #111;
+  border-radius:22px;
+  background:#f28c28;
+  backface-visibility:hidden;
+  -webkit-backface-visibility:hidden;
+  box-shadow:0 9px 0 #111,0 17px 25px #0002;
+
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+}
+
+.back{
+  font-size:68px;
+}
+
+.back small{
+  font-size:14px;
+  font-weight:900;
+  margin-top:15px;
+}
+
+.front{
+  transform:rotateY(180deg);
+}
+
+.rabbit{
+  font-size:75px;
+}
+
+.name{
+  font-size:25px;
+  font-weight:900;
+  margin-top:10px;
+}
+
+.controls{
+  height:90px;
+}
+
+button{
+  border:3px solid #111;
+  border-radius:100px;
+  background:white;
+  color:#111;
+  font-size:16px;
+  font-weight:900;
+  padding:13px 23px;
+  box-shadow:0 5px 0 #111;
+  touch-action:manipulation;
+}
+
+button:active{
+  transform:translateY(4px);
+  box-shadow:0 1px 0 #111;
+}
+
+.hidden{
+  display:none;
+}
+
+.fade{
+  opacity:.25;
+  transform:scale(.94);
+  transition:.3s;
+}
+
+.final .card{
+  width:min(50vw,250px);
+  height:min(68vw,350px);
+}
+
+@media(max-height:650px){
+  .app{padding-top:15px}
+  .card{height:225px}
+}
+</style>
+</head>
+
+<body>
+
+<main class="app" id="app">
+
+  <div>
+    <div class="round" id="round">ROUND 1</div>
+    <h1 id="title">今天邀請了一些角色</h1>
+    <p class="hint" id="hint">請幫我選一張卡牌 ✨</p>
+  </div>
+
+  <div class="table" id="table"></div>
+
+  <div class="controls">
+    <button id="next" class="hidden">
+      下一位角色 →
+    </button>
+
+    <button id="finalButton" class="hidden">
+      最後一位由我來邀請 🐰
+    </button>
+  </div>
+
+</main>
+
+<script>
+
+const table = document.getElementById("table");
+const title = document.getElementById("title");
+const hint = document.getElementById("hint");
+const round = document.getElementById("round");
+const next = document.getElementById("next");
+const finalButton = document.getElementById("finalButton");
+const app = document.getElementById("app");
+
+let stage = 1;
+let selected = false;
+
+/*
+  第一輪：浣熊
+  第二輪：烏薩奇
+  最後：兔之助
+*/
+
+const characters = [
+  {
+    emoji:"🦝",
+    name:"浣熊"
+  },
+  {
+    emoji:"🐰",
+    name:"烏薩奇"
+  }
+];
+
+function makeCard(character){
+
+  const card = document.createElement("div");
+
+  card.className = "card";
+
+  card.innerHTML = `
+    <div class="inner">
+
+      <div class="face back">
+        🐰
+        <small>點擊選擇</small>
+      </div>
+
+      <div class="face front">
+        <div class="rabbit">${character.emoji}</div>
+        <div class="name">${character.name}</div>
+      </div>
+
+    </div>
+  `;
+
+  card.addEventListener("click",function(){
+
+    chooseCard(card);
+
+  });
+
+  return card;
+}
+
+
+function loadRound(){
+
+  selected = false;
+
+  table.innerHTML = "";
+
+  table.className = "table";
+
+  const character = characters[stage-1];
+
+  /*
+    兩張牌其實完全相同
+    所以觀眾無論選哪張
+    都會翻出指定角色
+  */
+
+  table.appendChild(makeCard(character));
+  table.appendChild(makeCard(character));
+
+  round.textContent = "ROUND " + stage;
+
+  title.textContent = "請選擇一張卡牌";
+
+  hint.textContent =
+    stage === 1
+    ? "看看第一位來幫我加油的是誰 ✨"
+    : "再幫我選出第二位角色 ✨";
+
+  next.classList.add("hidden");
+  finalButton.classList.add("hidden");
+
+}
+
+
+function chooseCard(card){
+
+  if(selected) return;
+
+  selected = true;
+
+  card.classList.add("flipped");
+
+  const cards = document.querySelectorAll(".card");
+
+  cards.forEach(function(c){
+
+    if(c !== card){
+      c.classList.add("fade");
+    }
+
+  });
+
+  setTimeout(function(){
+
+    hint.textContent =
+      stage === 1
+      ? "✨ 浣熊來幫我加油了！"
+      : "✨ 烏薩奇也來了！";
+
+  },600);
+
+
+  if(stage === 1){
+
+    next.classList.remove("hidden");
+
+  }else{
+
+    finalButton.classList.remove("hidden");
+
+  }
+
+}
+
+
+next.addEventListener("click",function(){
+
+  stage = 2;
+
+  loadRound();
+
+});
+
+
+finalButton.addEventListener("click",function(){
+
+  app.classList.add("final");
+
+  round.textContent = "FINAL";
+
+  title.textContent = "最後一位角色";
+
+  hint.textContent = "這一位，是我自己邀請來的。";
+
+  table.innerHTML = "";
+
+  const finalCharacter = {
+    emoji:"🐰",
+    name:"兔之助"
+  };
+
+  const card = makeCard(finalCharacter);
+
+  table.appendChild(card);
+
+  finalButton.classList.add("hidden");
+
+  setTimeout(function(){
+
+    card.classList.add("flipped");
+
+  },500);
+
+  setTimeout(function(){
+
+    hint.textContent = "✨ 兔之助登場！✨";
+
+  },1200);
+
+});
+
+
+loadRound();
+
+</script>
+
+</body>
+</html>

@@ -370,7 +370,15 @@ function chooseCard(card){
 
   selected = true;
 
-  flipped")
+  card.classList.add("selected");
+
+setTimeout(function(){
+
+  card.classList.add("flipped");
+
+  createSparkles(card,12);
+
+},180);
 
   const cards = document.querySelectorAll(".card");
 

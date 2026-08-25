@@ -22,7 +22,7 @@ body{
 
 .app{
   min-height:100svh;
-  padding:28px 18px;
+  padding:12px 14px;
   display:flex;
   flex-direction:column;
   align-items:center;
@@ -38,31 +38,37 @@ body{
 
 h1{
   font-size:29px;
-  margin:8px 0;
+  margin:3px 0;
 }
 
 .hint{
   margin:0;
-  min-height:25px;
+  min-height:22px;
 }
 
 .table{
   flex:1;
   width:100%;
   display:flex;
-  align-items:center;
+  align-items:flex-start;
   justify-content:center;
-  gap:20px;
+  gap:12px;
+  padding-top:10px;
 }
 
 .card{
-  width:min(39vw,220px);
-  height:min(57vw,315px);
+  width:min(43vw,260px);
+  height:min(62vw,380px);
   min-width:140px;
   min-height:210px;
   perspective:1000px;
   cursor:pointer;
   touch-action:manipulation;
+  transition:
+    width .45s ease,
+    height .45s ease,
+    transform .45s ease,
+    opacity .3s ease;
 }
 
 .inner{
@@ -168,9 +174,6 @@ button:active{
   .app{padding-top:15px}
   .card{height:225px}
 }
-  .card.selected{
-  animation:cardPop .28s ease-out;
-}
 
 .card.flipped{
   animation:cardGlow .9s ease-out;
@@ -178,11 +181,7 @@ button:active{
 
 
 
-@keyframes cardPop{
-  0%{transform:scale(1)}
-  60%{transform:scale(1.06)}
-  100%{transform:scale(1)}
-}
+
 
 @keyframes cardGlow{
   0%{filter:drop-shadow(0 0 0 rgba(255,180,80,0))}
@@ -236,6 +235,21 @@ button:active{
     opacity:0;
   }
 }
+  .app.reveal-mode .table{
+  padding-top:4px;
+  align-items:flex-start;
+}
+
+.app.reveal-mode .card:not(.selected){
+  display:none;
+}
+
+.app.reveal-mode .card.selected{
+  width:min(78vw,460px);
+  height:min(70svh,610px);
+  min-width:0;
+  min-height:0;
+}
 </style>
 </head>
 
@@ -264,23 +278,15 @@ button:active{
 </main>
 
 <script>
-
 const table = document.getElementById("table");
 const title = document.getElementById("title");
 const hint = document.getElementById("hint");
 const round = document.getElementById("round");
-const next = document.getElementById("next");
-const finalButton = document.getElementById("finalButton");
 const app = document.getElementById("app");
 
 let stage = 1;
 let selected = false;
-
-/*
-  第一輪：浣熊
-  第二輪：烏薩奇
-  最後：兔之助
-*/
+let awaitingNext = false;
 
 const characters = [
   {
@@ -292,6 +298,7 @@ const characters = [
     name:"烏薩奇"
   }
 ];
+
 
 function makeCard(character){
 
@@ -308,8 +315,8 @@ function makeCard(character){
       </div>
 
       <div class="face front">
-  <img src="${character.image}" alt="${character.name}">
-</div>
+        <img src="${character.image}" alt="${character.name}">
+      </div>
 
     </div>
   `;
@@ -327,18 +334,14 @@ function makeCard(character){
 function loadRound(){
 
   selected = false;
+  awaitingNext = false;
+
+  app.classList.remove("reveal-mode");
+  app.classList.remove("final");
 
   table.innerHTML = "";
 
-  table.className = "table";
-
-  const character = characters[stage-1];
-
-  /*
-    兩張牌其實完全相同
-    所以觀眾無論選哪張
-    都會翻出指定角色
-  */
+  const character = characters[stage - 1];
 
   table.appendChild(makeCard(character));
   table.appendChild(makeCard(character));
@@ -351,10 +354,6 @@ function loadRound(){
     stage === 1
     ? "看看第一位來幫我加油的是誰 ✨"
     : "再幫我選出第二位角色 ✨";
-
-  next.classList.add("hidden");
-  finalButton.classList.add("hidden");
-
 }
 
 
@@ -366,58 +365,57 @@ function chooseCard(card){
 
   card.classList.add("selected");
 
-setTimeout(function(){
+  app.classList.add("reveal-mode");
 
-  card.classList.add("flipped");
+  setTimeout(function(){
 
-  createSparkles(card,12);
+    card.classList.add("flipped");
 
-},180);
+    createSparkles(card,12);
 
-  const cards = document.querySelectorAll(".card");
-
-  cards.forEach(function(c){
-
-    if(c !== card){
-      c.classList.add("fade");
-    }
-
-  });
+  },300);
 
   setTimeout(function(){
 
     hint.textContent =
       stage === 1
-      ? "✨ 浣熊來幫我加油了！"
-      : "✨ 烏薩奇也來了！";
+      ? "✨ 浣熊來幫我加油了！・輕觸畫面繼續"
+      : "✨ 烏薩奇也來了！・輕觸畫面繼續";
 
-  },600);
+    awaitingNext = true;
 
-
-  if(stage === 1){
-
-    next.classList.remove("hidden");
-
-  }else{
-
-    finalButton.classList.remove("hidden");
-
-  }
+  },850);
 
 }
 
 
-next.addEventListener("click",function(){
+document.addEventListener("click",function(){
 
-  stage = 2;
+  if(!awaitingNext) return;
 
-  loadRound();
+  awaitingNext = false;
+
+  if(stage === 1){
+
+    stage = 2;
+
+    loadRound();
+
+  }else if(stage === 2){
+
+    showFinal();
+
+  }
 
 });
 
 
-finalButton.addEventListener("click",function(){
+function showFinal(){
 
+  selected = false;
+  awaitingNext = false;
+
+  app.classList.remove("reveal-mode");
   app.classList.add("final");
 
   round.textContent = "FINAL";
@@ -449,35 +447,39 @@ finalButton.addEventListener("click",function(){
 
   table.appendChild(card);
 
-  finalButton.classList.add("hidden");
-
   card.addEventListener("click",function(){
 
-    if(card.classList.contains("flipped")) return;
+    if(selected) return;
+
+    selected = true;
 
     card.classList.add("selected");
 
-    hint.textContent = "準備好迎接最後一位了嗎？ ✨";
+    app.classList.add("reveal-mode");
+
+    hint.textContent =
+      "準備好迎接最後一位了嗎？ ✨";
 
     setTimeout(function(){
 
-  card.classList.add("flipped");
+      card.classList.add("flipped");
 
-  createSparkles(card,24);
+      createSparkles(card,24);
 
-},180);
+    },300);
 
     setTimeout(function(){
 
-      hint.textContent = "✨ 兔之助登場！✨";
+      hint.textContent =
+        "✨ 兔之助登場！✨";
 
     },900);
 
   });
 
-});
-function createSparkles(card, amount = 12){
+}
 
+function createSparkles(card, amount = 12){
   const rect = card.getBoundingClientRect();
 
   const centerX = rect.left + rect.width / 2;
